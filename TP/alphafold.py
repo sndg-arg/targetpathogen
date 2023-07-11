@@ -30,8 +30,8 @@ class AlphaFolder:
         self.af_url = f"https://alphafold.ebi.ac.uk/api/prediction/{accession}?key=AIzaSyCeurAJz7ZGjPQUtEaerUkBZ3TaBkXrY94"
         self.result_dir = os.path.join(working_dir, "output")
         self.MAX_CPU = max_cpu
-        self.uniprot_text_filename = os.path.join(self.working_dir, f"{accession}_uniprot.txt")
-        self.af_pdb_filename = os.path.join(self.working_dir,f"{accession}_AF.pdb")
+        self.uniprot_text_filename = os.path.join(self.result_dir, f"{accession}_uniprot.txt")
+        self.af_pdb_filename = os.path.join(self.result_dir,f"{accession}_AF.pdb")
         sys.stderr.write(f"Uniprot protein accession number: {self.accession}\n" +
                          f"P2RANK binaries: {self.P2RANK_BIN}\n" +
                          f"FPOCKET binaries: {self.FPOCKET_BIN}\n" + 
@@ -54,7 +54,7 @@ class AlphaFolder:
             f.write(pdb_text)
     
     def RunP2rankFromFile(self):
-        sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +  f" -o {os.path.join(self.result_dir, f"{self.accession} + ")} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.accession}_AF.pdb", shell=True, stdout=sys.stderr).wait()
+        sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +  f" -o {os.path.join(self.result_dir, self.accession + '_p2rank')} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
     
     def RunFpocketFromFile(self):
         sts = subprocess.run(self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
