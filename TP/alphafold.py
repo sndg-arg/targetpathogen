@@ -37,6 +37,8 @@ class AlphaFolder:
     def GetUniprotFile(self):
         """Get the text file containing the features of a protein from Uniprot. The file is stored at output/{accesion}
         """
+        if os.path.isfile(self.uniprot_text_filename):
+            return None
         get_request = requests.get(self.uniprot_url)
         with open(self.uniprot_text_filename, "wb") as f:
             for chunk in get_request.iter_content(chunk_size=2**20):
@@ -45,6 +47,8 @@ class AlphaFolder:
     def GetAlphaFoldPrediction(self):
         """Get the PDB file containing the AlphaFold prediction from its DB. The file is stored at output/{accesion}
         """
+        if os.path.isfile(self.af_pdb_filename):
+            return None
         metadata = json.loads(requests.get(self.af_url).text)
         pdb_text = requests.get(metadata[0]["pdbUrl"]).text
         with open(self.af_pdb_filename, "w") as f:
@@ -53,16 +57,23 @@ class AlphaFolder:
     def RunP2rankFromFile(self):
         """Run P2RANK app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +  f" -o {os.path.join(self.result_dir, self.accession + '_p2rank')} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
+        dir_ = os.path.join(self.result_dir, self.accession + '_p2rank')
+        if os.path.isdir(dir_):
+            return None
+        sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +  f" -o {dir_} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
+
     
     def RunFpocketFromFile(self):
         """Run FPOCKET app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        sts = subprocess.run(self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
         fpocket_out = f"{self.accession}_AF_out"
+        dir_ = os.path.join(self.result_dir, fpocket_out)
+        if os.path.isdir(dir_):
+            return None
+        sts = subprocess.run(self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
         path_exists = os.path.exists(os.path.join(self.working_dir, fpocket_out))
         if path_exists:
-            os.system(f"mv {os.path.join(self.working_dir, fpocket_out)} {os.path.join(self.result_dir, fpocket_out)}")
+            os.system(f"mv {os.path.join(self.working_dir, fpocket_out)} {dir_}")
         
     def GetPlddtFromFile(self, save_to_file = True):
         """Get the PLDDT values from all the residues in the PDB file from AlphaFold's DB
@@ -73,6 +84,8 @@ class AlphaFolder:
         Returns:
             Dictionary containing all the pair residue, value
         """
+        if os.path.isfile(self.af_plddt_filename):
+            return None
         plddt = dict()
         parser = biopdb.PDBParser()
         structure = parser.get_structure(self.accession, self.af_pdb_filename)
