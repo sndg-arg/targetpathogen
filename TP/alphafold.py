@@ -1,4 +1,6 @@
-import requests, sys, json, os, argparse, subprocess
+import requests, sys, json, os, argparse, subprocess, tqdm
+import concurrent.futures
+import Bio.PDB as biopdb
 
 """
 
@@ -65,15 +67,33 @@ class AlphaFolder:
                 os.mkdir(self.result_dir)
             os.system(f"mv {os.path.join(self.working_dir, fpocket_out)} {os.path.join(self.result_dir, fpocket_out)}")
         
+    def GetPlddtFromFile(self):
+        plddt = dict()
+        parser = biopdb.PDBParser()
+        structure = parser.get_structure(self.accession, self.af_pdb_filename)
+        for atom in structure.get_atoms():
+            plddt[atom.get_serial_number()] = atom.get_bfactor()
+        return plddt
     
-
 if __name__ == "__main__":
+    accessions = list()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help="protein's PDB accession number", type=str, required=True)
+    if not sys.stdin.isatty():
+        # there is something in the stdin
+        parser.add_argument('stdinput', nargs='?', type=argparse.FileType('r'), default=(None if sys.stdin.isatty() else sys.stdin))
+    else:
+        parser.add_argument('-i', '--input', help="protein's PDB accession number", type=str, required=True)
     parser.add_argument('-o', '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
     args = parser.parse_args()
+    if not sys.stdin.isatty():
+        for l in args.stdinput.readlines():
+            accessions.append(l.strip().upper())
+    else:
+        accessions.append(args.input)
     working_dir = args.working_dir
-    obj = AlphaFolder(args.input)
-    obj.GetAlphaFoldPrediction()
-    obj.RunP2rankFromFile()
-    obj.RunFpocketFromFile()
+    for ac in tqdm.tqdm(accessions):
+        obj = AlphaFolder(ac)
+        obj.GetAlphaFoldPrediction()
+        obj.RunP2rankFromFile()
+        obj.RunFpocketFromFile()
+        #obj.GetPlddtFromFile()
