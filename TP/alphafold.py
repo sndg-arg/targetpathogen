@@ -1,5 +1,4 @@
 import requests, sys, json, os, argparse, subprocess, tqdm, tarfile, shutil
-import concurrent.futures
 import Bio.PDB as biopdb
 
 class AlphaFolder:
@@ -121,6 +120,7 @@ if __name__ == "__main__":
     else:
         parser.add_argument('-i', '--input', help="protein's PDB accession number", type=str, required=True)
     parser.add_argument('-o', '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
+    parser.add_argument('-nc', '--no_compress', help="flag to not compress the results",action="store_true", default=False)
     args = parser.parse_args()
     if not sys.stdin.isatty():
         for l in args.stdinput.readlines():
@@ -130,8 +130,10 @@ if __name__ == "__main__":
     working_dir = args.working_dir
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac)
+        obj.GetUniprotFile()
         obj.GetAlphaFoldPrediction()
         obj.RunP2rankFromFile()
         obj.RunFpocketFromFile()
         obj.GetPlddtFromFile()
-        obj.CompressResults()
+        if not args.no_compress:
+            obj.CompressResults()
