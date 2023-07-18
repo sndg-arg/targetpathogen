@@ -82,6 +82,7 @@ class Intersector:
                                     usecols=[3, 4, 6, 7], 
                                     names=["family", "identifier", "range_inf", "range_sup"])
         
+        #Read all the pdb files of each pocket
         fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
         pockets_folder = os.path.join(fpocket_dir, "pockets")
         pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
@@ -98,6 +99,7 @@ class Intersector:
         for i, k in enumerate(pockets_name_val.keys()):
             colnames.append(f"Points of intersection with Pocket {i}")
         df = pd.DataFrame(columns=colnames)
+        #Create a row for each family
         for ind, row in interpro_df.iterrows():
             cur_fam = row["family"]
             cur_identifier = row["identifier"]
@@ -108,7 +110,8 @@ class Intersector:
                 intersections[k] = list()
                 for res in pockets_name_val[k]:
                     if res >= range_inf and res <= range_sup:
-                        intersections[k].append(str(res))
+                        if str(res) not in intersections[k]:
+                            intersections[k].append(str(res))
             values = [cur_fam, cur_identifier]
             for k in intersections.keys():
                 values.append((' ').join(intersections[k]))
