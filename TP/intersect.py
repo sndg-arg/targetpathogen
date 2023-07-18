@@ -1,5 +1,5 @@
 import pandas as pd
-import requests, sys, json, os, argparse, subprocess, tqdm, tarfile, shutil
+import sys, os, argparse, glob, re, io
 import numpy as np
 
 
@@ -75,10 +75,47 @@ class Intersector:
             df.to_csv(os.path.join(self.result_dir, self.accession) + "_p2ranks_intersections.csv", sep=',', index=False)
         return df
     
-    def CalcIntersectionsFPocket():
-        """To do!
-        """
-        pass
+    def CalcIntersectionsFPocket(self, save_to_file = False):
+        interpro_df = pd.read_csv(self.interpro_scan_file,
+                                    sep='\t', 
+                                    header=None, 
+                                    usecols=[3, 4, 6, 7], 
+                                    names=["family", "identifier", "range_inf", "range_sup"])
+        
+        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
+        pockets_folder = os.path.join(fpocket_dir, "pockets")
+        pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
+        pockets_name_val = dict()
+        for pocket in pockets:
+            with open(pocket, 'r') as pocket_f:
+                data = pocket_f.read()
+                values = re.findall(r"\bATOM.*", data)
+                df_p = pd.read_csv(io.StringIO('\n'.join(values)), delim_whitespace=True, header=None)
+                pocket_name = os.path.basename(pocket).split('_')[0]
+                pockets_name_val[pocket_name] = list(df_p.iloc[:,5])
+        pockets_name_val = dict(sorted(pockets_name_val.items()))
+        colnames = ["Family", "Identifier"]
+        for i, k in enumerate(pockets_name_val.keys()):
+            colnames.append(f"Points of intersection with Pocket {i}")
+        df = pd.DataFrame(columns=colnames)
+        for ind, row in interpro_df.iterrows():
+            cur_fam = row["family"]
+            cur_identifier = row["identifier"]
+            range_inf = row["range_inf"]
+            range_sup = row["range_sup"]
+            intersections = dict()
+            for k in pockets_name_val.keys():
+                intersections[k] = list()
+                for res in pockets_name_val[k]:
+                    if res >= range_inf and res <= range_sup:
+                        intersections[k].append(str(res))
+            values = [cur_fam, cur_identifier]
+            for k in intersections.keys():
+                values.append((' ').join(intersections[k]))
+            df.loc[len(df.index)] = values
+        if save_to_file:
+            df.to_csv(os.path.join(self.result_dir, self.accession) + "_fpocket_intersections.csv", sep=',', index=False)
+        return df
 
 
 
@@ -91,7 +128,6 @@ if __name__ == "__main__":
     parser.add_argument("p2rankfile", help="File containing the protein's predicted pockets using P2Rank", type=str)
     parser.add_argument('-o', '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
     args = parser.parse_args()
-
     obj = Intersector(args.accession, args.p2rankfile, args.interprotscan, args.working_dir)
-    df = obj.CalcIntersectionsP2(save_to_file=True)
-    print(df)
+    #df = obj.CalcIntersectionsP2(save_to_file=True)
+    obj.CalcIntersectionsFPocket(save_to_file=True)
