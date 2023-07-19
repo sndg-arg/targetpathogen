@@ -20,18 +20,17 @@ import numpy as np
 class Intersector:
     """Class to calculate points of intersection between a protein and its predicted pockets
     """
-    def __init__(self, accession, p2rank_file, interpro_scan_file, working_dir = os.getcwd()) -> None:
+    def __init__(self, accession, interpro_scan_file, working_dir = os.getcwd()) -> None:
         self.working_dir = working_dir
         self.accession = accession
         self.result_dir = os.path.join(working_dir, os.path.join("output", self.accession))
         if not os.path.exists(self.result_dir):
                 os.mkdir(self.result_dir)
         self.out_dir = os.path.join(self.working_dir, "output")
-        self.p2rank_file = p2rank_file
         self.interpro_scan_file = interpro_scan_file
         pass        
         
-    def CalcIntersectionsP2(self, save_to_file = False):
+    def CalcIntersectionsP2(self, p2rank_file, save_to_file = False):
         """Calculates the points of intersection between a protein and its predicted pockets from P2Rank
 
         Args:
@@ -40,7 +39,7 @@ class Intersector:
         Returns:
             pandas.DataFrame: a pandas dataframe containing the points of intersection
         """
-        p2_df = pd.read_csv(self.p2rank_file, 
+        p2_df = pd.read_csv(p2rank_file, 
                                    sep='\s*,\s*',
                                    usecols=["name", "residue_ids"],
                                    skipinitialspace=True, engine='python')
@@ -75,7 +74,15 @@ class Intersector:
             df.to_csv(os.path.join(self.result_dir, self.accession) + "_p2ranks_intersections.csv", sep=',', index=False)
         return df
     
-    def CalcIntersectionsFPocket(self, save_to_file = False):
+    def CalcIntersectionsFPocket(self, pockets_folder, save_to_file = False):
+        """Calculates the points of intersection between a protein and its predicted pockets from FPOCKET
+
+        Args:
+            save_to_file (bool, optional): Defaults to False.
+
+        Returns:
+            pandas.DataFrame: a pandas dataframe containing the points of intersection
+        """
         interpro_df = pd.read_csv(self.interpro_scan_file,
                                     sep='\t', 
                                     header=None, 
@@ -83,8 +90,8 @@ class Intersector:
                                     names=["family", "identifier", "range_inf", "range_sup"])
         
         #Read all the pdb files of each pocket
-        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
-        pockets_folder = os.path.join(fpocket_dir, "pockets")
+        #fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
+        #pockets_folder = os.path.join(fpocket_dir, "pockets")
         pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
         pockets_name_val = dict()
         for pocket in pockets:
@@ -126,11 +133,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     #p2rank_file = "/home/rafa_br/Documents/GitHub/targetpathogen/TP/output/P9WPB2/P9WPB2_p2rank/P9WPB2_AF.pdb_predictions.csv"
     #interpro_scan_file = "~/Downloads/iprscan5-R20230713-163003-0060-38200671-p1m.tsv"
-    parser.add_argument("accession", help="protein's PDB accession number", type=str)
-    parser.add_argument("interprotscan", help="File containing the protein's InterprotScan metadata", type=str)
-    parser.add_argument("p2rankfile", help="File containing the protein's predicted pockets using P2Rank", type=str)
-    parser.add_argument('-o', '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
+    parser.add_argument("-a", "--accession", help="protein's PDB accession number", type=str, required=True)
+    parser.add_argument("-i", "--interprotscan", help="File containing the protein's InterprotScan metadata", type=str, required=True)
+    parser.add_argument("-p", "--p2rankfile", help="File containing the protein's predicted pockets using P2Rank", type=str, required=False)
+    parser.add_argument("-f", "--fpocket", help="Path containing the protein's pockets predicted pockets using FPOCKET", type=str, required=False)
+    parser.add_argument("-o", '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
+    parser.add_argument("-s", "--save", help="Save the result to a CSV file", action="store_true", default=False)
     args = parser.parse_args()
-    obj = Intersector(args.accession, args.p2rankfile, args.interprotscan, args.working_dir)
-    #df = obj.CalcIntersectionsP2(save_to_file=True)
-    obj.CalcIntersectionsFPocket(save_to_file=True)
+    obj = Intersector(args.accession, args.interprotscan, args.working_dir)
+    if args.p2rankfile is not None:
+        df = obj.CalcIntersectionsP2(args.p2rankfile, args.save)
+    if args.fpocket is not None:
+        obj.CalcIntersectionsFPocket(args.fpocket, args.save)
