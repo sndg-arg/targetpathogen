@@ -112,21 +112,15 @@ class AlphaFolder:
 if __name__ == "__main__":
     accessions = list()
     parser = argparse.ArgumentParser()
-    if not sys.stdin.isatty():
-        # there is something in the stdin
-        parser.add_argument('stdinput', nargs='?', type=argparse.FileType('r'),
-                             default=(None if sys.stdin.isatty() else sys.stdin),
-                             help="List of protein's PDB accession numbers separated with new lines")
-    else:
-        parser.add_argument('-i', '--input', help="protein's PDB accession number", type=str, required=True)
+    parser.add_argument('input', help="List of protein's PDB accession numbers separated with new lines",
+                        type = str, 
+                        nargs='*', 
+                        default=sys.stdin)
     parser.add_argument('-o', '--working_dir', help="path of the working_dir", type=str, required=False, default=os.getcwd())
     parser.add_argument('-nc', '--no_compress', help="flag to not compress the results",action="store_true", default=False)
     args = parser.parse_args()
-    if not sys.stdin.isatty():
-        for l in args.stdinput.readlines():
+    for l in args.input:
             accessions.append(l.strip().upper())
-    else:
-        accessions.append(args.input)
     working_dir = args.working_dir
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac)
