@@ -11,9 +11,6 @@ import Bio.SeqIO as bpio
 import sys
 
 
-def lt(f):
-    return f.qualifiers.get("locus_tag", [""])[0]
-
 
 class GenebankUtils:
     """
@@ -319,7 +316,7 @@ if __name__ == '__main__':
             h.close()
 
     if args.command == "download":
-        downloaded_file = GenebankUtil.sdownload_assembly(args.accession, dst_dir=args.output, force=args.force)
+        downloaded_file = GenebankUtils.sdownload_assembly(args.accession, dst_dir=args.output, force=args.force)
         if not os.path.exists(downloaded_file) or (os.path.getsize(downloaded_file) < 10):
             sys.stderr.write(f"error downloading {args.accession}")
         else:

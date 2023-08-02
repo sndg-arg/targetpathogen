@@ -7,6 +7,7 @@ import subprocess as sp
 from threading import Thread
 from TP import execute
 
+
 class PathoLogic:
     DOCKERIMAGENAME = "ezequieljsosa/pathwaytools:2.4"
     DOCKERCONTAIERNAME = "pathwaytools"
@@ -27,12 +28,11 @@ class PathoLogic:
                     -w {self.input_data_dir} --volume {self.output_data_dir}:/opt/data/ptools-local/pgdbs \
                     -p 5008:5008 {PathoLogic.DOCKERIMAGENAME} /opt/pathway-tools/pathway-tools -python -api')
 
-
     def start(self):
         execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
 
     def stop(self):
-        execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
+        execute(f'docker stop {PathoLogic.DOCKERCONTAIERNAME}')
 
     def run_pathologic(self):
         execute(f'docker exec -w {self.input_data_dir} {PathoLogic.DOCKERCONTAIERNAME} /opt/pathway-tools/pathway-tools \
@@ -41,9 +41,11 @@ class PathoLogic:
     def process_pgdb(self):
         self.db = pythoncyc.select_organism(self.orgdbname)
         # pathwayts = {x.replace("|",""): self.db.get_frame_objects([x])[0] for x in self.db.all_pathways()}
-        reactions = {x.replace("|", ""): self.db.get_frame_objects([x])[0] for x in self.db.all_reactions()}
+        reactions = {x.replace("|", ""): self.db.get_frame_objects([x])[
+            0] for x in self.db.all_reactions()}
         # compounds = {x["frameid"].replace("|",""): self.db.get_frame_objects([x["frameid"]])[0] for x in self.db.compounds}
-        genes = {x["frameid"].replace("|", ""): self.db.reactions_of_gene(x["frameid"]) for x in self.db.genes}
+        genes = {x["frameid"].replace("|", ""): self.db.reactions_of_gene(
+            x["frameid"]) for x in self.db.genes}
 
         genes2 = {}
 
@@ -60,7 +62,8 @@ class PathoLogic:
 
             for k, r in reactions.items():
                 if "in_pathway" in r.__dict__:
-                    pathwayts3[k] = [p.replace("|", "") for p in r["in_pathway"]]
+                    pathwayts3[k] = [p.replace("|", "")
+                                     for p in r["in_pathway"]]
                 else:
                     pathwayts3[k] = []
                 products = [x.replace("|", "") for x in r.right if x]
@@ -94,8 +97,6 @@ class PathoLogic:
             pickle.dump(genes2, hg)
 
 
-
-
 if __name__ == "__main__":
     import argparse
     import os
@@ -104,23 +105,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Pathologic')
     # orgdbname,pgdbs_data_dir,input_data_dir,output_data_dir,filter_count
     parser.add_argument('orgdbname', help="name if the pgdb in pathwaytools")
-    parser.add_argument('pgdbs_data_dir', help="absolute path to mount PGDBs directory")
+    parser.add_argument(
+        'pgdbs_data_dir', help="absolute path to mount PGDBs directory")
     parser.add_argument('input_data_dir',
                         help="directory with Pathologic input (organism, genetic elements and genebank)")
-    parser.add_argument('output_data_dir', help="directory where results are stores")
-    parser.add_argument('--filter_count', type=int, help="max occurrences for compounds")
+    parser.add_argument('output_data_dir',
+                        help="directory where results are stores")
+    parser.add_argument('--filter_count', type=int,
+                        help="max occurrences for compounds")
     parser.add_argument('--wait_server_up', type=int, default=10,
                         help="time to wait before using pathwaytools servere")
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.pgdbs_data_dir), f'{args.pgdbs_data_dir} does no exist'
-    assert os.path.exists(args.input_data_dir), f'{args.input_data_dir} does no exist'
+    assert os.path.exists(
+        args.pgdbs_data_dir), f'{args.pgdbs_data_dir} does no exist'
+    assert os.path.exists(
+        args.input_data_dir), f'{args.input_data_dir} does no exist'
     if not os.path.exists(args.output_data_dir):
         os.makedirs(args.output_data_dir)
-    assert os.path.exists(args.output_data_dir), f'{args.output_data_dir} cant be created'
+    assert os.path.exists(
+        args.output_data_dir), f'{args.output_data_dir} cant be created'
 
-    pl = PathoLogic(args.orgdbname, args.pgdbs_data_dir, args.input_data_dir, args.output_data_dir, args.filter_count)
+    pl = PathoLogic(args.orgdbname, args.pgdbs_data_dir,
+                    args.input_data_dir, args.output_data_dir, args.filter_count)
 
     pl.server_thread = Thread(target=pl.run_server)
     pl.server_thread.start()
