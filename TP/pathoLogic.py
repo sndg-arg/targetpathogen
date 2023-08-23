@@ -1,5 +1,10 @@
 from collections import defaultdict
 
+"""
+pip install pythoncyc
+"""
+
+
 import pythoncyc
 import pickle
 import networkx as nx
@@ -9,7 +14,7 @@ from TP import execute
 
 
 class PathoLogic:
-    DOCKERIMAGENAME = "ezequieljsosa/pathwaytools:2.4"
+    DOCKERIMAGENAME = "ezequieljsosa/pw:2.4"
     DOCKERCONTAIERNAME = "pathwaytools"
 
     def __init__(self, orgdbname, pgdbs_data_dir, input_data_dir, output_data_dir, filter_count=20):
@@ -22,7 +27,9 @@ class PathoLogic:
         self.filter_count = filter_count
 
     def run_server(self):
-
+        """
+        to exit server interactive ":exit"
+        """
         execute(
             f'docker run --rm --name {PathoLogic.DOCKERCONTAIERNAME} -v {self.input_data_dir}:{self.input_data_dir} \
                     -w {self.input_data_dir} --volume {self.output_data_dir}:/opt/data/ptools-local/pgdbs \
