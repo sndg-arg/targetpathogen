@@ -1,8 +1,4 @@
-import glob
-import os
-import subprocess
-import sys
-import argparse
+import glob, os, subprocess, sys, tarfile, argparse, shutil
 from pathlib import Path
 
 
@@ -46,6 +42,7 @@ class Roarier:
         roary_params = f"-f /data/{roary_out} -e -n -v {(' ').join(gff_list)}"
         subprocess.run(f"{self.roary_bin} {roary_params}",
                         shell=True, stdout=sys.stderr)
+
 
 
 if __name__ == "__main__":
