@@ -78,7 +78,7 @@ class AlphaFolder:
     def RunFpocketFromFile(self):
         """Run FPOCKET app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        fpocket_out = f"{self.accession}_AF_out"
+        fpocket_out = f"{self.accession}_FPOCKET_out"
         dir_ = os.path.join(self.result_dir, fpocket_out)
         if os.path.isdir(dir_):
             return None

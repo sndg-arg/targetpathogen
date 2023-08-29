@@ -152,16 +152,7 @@ class PathoLogic:
                     o.close()
             f.close()
                 #print(re.search("\d+", record.dbxrefs[0]).group(0))
-
-
-
-
-
-
-
-
-
-
+                
 if __name__ == "__main__":
     import argparse
     import os
