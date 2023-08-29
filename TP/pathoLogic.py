@@ -113,13 +113,20 @@ class PathoLogic:
             pickle.dump(genes2, hg)
 
     def create_gendata(self):
-        gz_file = list(Path(os.path.join(self.input_data_dir)).glob("*.gz"))[0]
-        filename = Path(gz_file).stem
-        with gzip.open(gz_file, 'r') as f:
-            with open(os.path.join(self.input_data_dir, f"{filename}"), 'wb') as f_out:
-                shutil.copyfileobj(f, f_out)
-                f_out.close()
-            f.close()
+        
+        gz_files = list(Path(os.path.join(self.input_data_dir)).glob("*.gz"))
+        if len(gz_files) > 0:
+            gz_file = gz_files[0]
+            filename = Path(gz_file).stem
+            with gzip.open(gz_file, 'r') as f:
+                with open(os.path.join(self.input_data_dir, f"{filename}"), 'wb') as f_out:
+                    shutil.copyfileobj(f, f_out)
+                    f_out.close()
+                f.close()
+        else:
+            gz_files = list(Path(os.path.join(self.input_data_dir)).glob("*.gbk"))
+            gz_file = gz_files[0]
+            filename = os.path.basename(gz_file)
         with open(os.path.join(self.input_data_dir, f"{filename}"), 'r') as f:
             for record in SeqIO.parse(f, "genbank"):
                 organism = ""
