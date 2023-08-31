@@ -1,17 +1,13 @@
-import requests
-import sys
-import json
-import os
-import argparse
-import subprocess
-import tqdm
-import tarfile
-import shutil
+import requests, sys, json, os, argparse, subprocess
+import tqdm, tarfile, shutil, glob, re, io
 import Bio.PDB as biopdb
-
-
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 class AlphaFolder:
-
+    """Class to manipulate the Pockets of an alpha fold file from its PDB accession number
+    """
     def __init__(self, accession, working_dir=os.getcwd(), p2rank_bin=None, fpocket_bin=None, max_cpu=1) -> None:
         if p2rank_bin is not None:
             self.P2RANK_BIN = p2rank_bin
@@ -78,7 +74,7 @@ class AlphaFolder:
     def RunFpocketFromFile(self):
         """Run FPOCKET app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        fpocket_out = f"{self.accession}_FPOCKET_out"
+        fpocket_out = f"{self.accession}_AF_out"
         dir_ = os.path.join(self.result_dir, fpocket_out)
         if os.path.isdir(dir_):
             return None
@@ -124,7 +120,61 @@ class AlphaFolder:
         if remove_files:
             shutil.rmtree(self.result_dir)
 
+    def CompareResults(self):
+        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
+        p2rank_dir = os.path.join(self.result_dir, self.accession + '_p2rank')
+        p2rank_file = os.path.join(p2rank_dir, f"{self.accession}_AF.pdb_predictions.csv")
+        pockets_folder = os.path.join(fpocket_dir, "pockets")
+        # ---- fpocket ----
+        #  files contain only the atoms contacted by alpha spheres in the given pocket.
+        pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
+        pockets_name_val = dict()
+        for pocket in pockets:
+            with open(pocket, 'r') as pocket_f:
+                data = pocket_f.read()
+                values = re.findall(r"\bATOM.*", data)
+                df_p = pd.read_csv(io.StringIO(
+                    '\n'.join(values)), delim_whitespace=True, header=None)
+                pocket_name = os.path.basename(pocket).split('_')[0]
+                pockets_name_val[pocket_name] = set(df_p.iloc[:, 5])
+        pockets_name_val = dict(sorted(pockets_name_val.items()))
+        for k in pockets_name_val.keys():
+            pockets_name_val[k] = sorted(pockets_name_val[k])
 
+        # ---- p2rank ----
+        p2_df = pd.read_csv(p2rank_file,
+                            sep='\s*,\s*',
+                            usecols=["name", "residue_ids"],
+                            skipinitialspace=True, engine='python')
+        p2_residues = dict()
+        for j, p2row in p2_df.iterrows():
+            adjacent_residues = set(p2row["residue_ids"].split(' '))
+            adjacent_residues = set(int(x[2:]) for x in adjacent_residues)
+            p2_residues[p2row["name"]] = sorted(adjacent_residues)
+
+
+        
+        print("FPOCKET pockets:")
+        for k in pockets_name_val.keys():
+            print(f"-----------------{k}-----------------")
+            print(f"Residues: {pockets_name_val[k]}")
+        print("\nP2rank pockets:")
+        for k in p2_residues.keys():
+            print(f"-----------------{k}-----------------")
+            print(f"Residues: {p2_residues[k]}")
+
+        mat = np.zeros((len(p2_residues), len(pockets_name_val)))
+        print(mat)
+        for i, k in enumerate(p2_residues.keys()):
+            for j,l in enumerate(pockets_name_val.keys()):
+                intersec = list(set(p2_residues[k]).intersection(set(pockets_name_val[l])))
+                mat[i][j] = len(intersec)/len(p2_residues[k])
+        print(mat)
+        ax = sns.heatmap(mat, linewidth=0.5)
+        ax.set_title("Percentage of P2RANK in FPOCKET pockets")
+        ax.set_xlabel("FPOCKET pockets")
+        ax.set_ylabel("P2RANK pockets")
+        plt.show()
 if __name__ == "__main__":
     accessions = list()
     parser = argparse.ArgumentParser()
@@ -149,5 +199,7 @@ if __name__ == "__main__":
         obj.RunP2rankFromFile()
         obj.RunFpocketFromFile()
         obj.GetPlddtFromFile()
+        obj.CompareResults()
+        
         if not args.no_compress:
             obj.CompressResults()
