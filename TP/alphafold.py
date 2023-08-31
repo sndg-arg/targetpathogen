@@ -120,7 +120,7 @@ class AlphaFolder:
         if remove_files:
             shutil.rmtree(self.result_dir)
 
-    def CompareResults(self):
+    def CompareResults(self, threshold = 0.2):
         fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
         p2rank_dir = os.path.join(self.result_dir, self.accession + '_p2rank')
         p2rank_file = os.path.join(p2rank_dir, f"{self.accession}_AF.pdb_predictions.csv")
@@ -153,7 +153,7 @@ class AlphaFolder:
             p2_residues[p2row["name"]] = sorted(adjacent_residues)
 
 
-        
+        '''
         print("FPOCKET pockets:")
         for k in pockets_name_val.keys():
             print(f"-----------------{k}-----------------")
@@ -162,19 +162,51 @@ class AlphaFolder:
         for k in p2_residues.keys():
             print(f"-----------------{k}-----------------")
             print(f"Residues: {p2_residues[k]}")
-
+        '''
         mat = np.zeros((len(p2_residues), len(pockets_name_val)))
-        print(mat)
+
         for i, k in enumerate(p2_residues.keys()):
             for j,l in enumerate(pockets_name_val.keys()):
                 intersec = list(set(p2_residues[k]).intersection(set(pockets_name_val[l])))
                 mat[i][j] = len(intersec)/len(p2_residues[k])
-        print(mat)
+                if mat[i][j] >= threshold:
+                    print(f"{mat[i][j]*100}% of P2RANK's {k} found on FPOCKET's {l} pocket.")
+
         ax = sns.heatmap(mat, linewidth=0.5)
         ax.set_title("Percentage of P2RANK in FPOCKET pockets")
         ax.set_xlabel("FPOCKET pockets")
+        plt.xticks(rotation=45)
+        ax.set_xticklabels(pockets_name_val.keys())
         ax.set_ylabel("P2RANK pockets")
-        plt.show()
+        ax.set_yticklabels(p2_residues.keys())
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket.pdf"), dpi=300)
+
+        t = list(pockets_name_val.keys())
+        ticks = dict()
+        for j,l in enumerate(t):
+            for k in range(j+1, len(t)):
+                ticks[f"{t[j]} + {t[k]}"] = set(pockets_name_val[t[j]]).union(pockets_name_val[t[k]])
+        mat2 = np.zeros(((len(p2_residues), len(ticks.keys()))))
+        for i, k in enumerate(p2_residues.keys()):
+            for j,l in enumerate(ticks.keys()):
+                intersec = list(set(p2_residues[k]).intersection(set(ticks[l])))
+                mat2[i][j] = len(intersec)/len(p2_residues[k])
+                if mat2[i][j] >= threshold:
+                    print(f"{mat2[i][j]*100}% of P2RANK's {k} found on FPOCKET's {l} pocket union.")
+        print(mat2.shape)
+        print(ticks.keys())
+        plt.clf()
+        ax = sns.heatmap(mat2, linewidth=0.5)
+        ax.set_title("Percentage of P2RANK in FPOCKET pockets")
+        ax.set_xlabel("FPOCKET pockets")
+        #ax.set_xticklabels(ticks.keys())
+        plt.xticks(rotation=45)
+        ax.set_ylabel("P2RANK pockets")
+        ax.set_yticklabels(p2_residues.keys())
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket_union.pdf"), dpi=300)
+
 if __name__ == "__main__":
     accessions = list()
     parser = argparse.ArgumentParser()
