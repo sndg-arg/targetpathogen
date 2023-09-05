@@ -186,7 +186,7 @@ class AlphaFolder:
         ticks = dict()
         for j,l in enumerate(t):
             for k in range(j+1, len(t)):
-                ticks[f"{t[j]} + {t[k]}"] = set(pockets_name_val[t[j]]).union(pockets_name_val[t[k]])
+                ticks[f"{j} + {k}"] = set(pockets_name_val[t[j]]).union(pockets_name_val[t[k]])
         mat2 = np.zeros(((len(p2_residues), len(ticks.keys()))))
         for i, k in enumerate(p2_residues.keys()):
             for j,l in enumerate(ticks.keys()):
@@ -200,8 +200,9 @@ class AlphaFolder:
         ax = sns.heatmap(mat2, linewidth=0.5)
         ax.set_title("Percentage of P2RANK in FPOCKET pockets")
         ax.set_xlabel("FPOCKET pockets")
-        #ax.set_xticklabels(ticks.keys())
-        plt.xticks(rotation=45)
+        ax.set_xticks(np.arange(0, len(ticks.keys())))
+        ax.set_xticklabels(ticks.keys())
+        plt.xticks(rotation=90)
         ax.set_ylabel("P2RANK pockets")
         ax.set_yticklabels(p2_residues.keys())
         plt.tight_layout()
