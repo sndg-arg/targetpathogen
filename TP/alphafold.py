@@ -182,6 +182,7 @@ class AlphaFolder:
         plt.tight_layout()
         plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket.pdf"), dpi=300)
 
+        #-----------------------------------------------------
         t = list(pockets_name_val.keys())
         ticks = dict()
         for j,l in enumerate(t):
@@ -207,7 +208,13 @@ class AlphaFolder:
         ax.set_yticklabels(p2_residues.keys())
         plt.tight_layout()
         plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket_union.pdf"), dpi=300)
-
+        print("-----------------------------------------")
+        print("fpocket")
+        for pocket in pockets_name_val.keys():
+            print(f"Size of {pocket}: {len(pockets_name_val[pocket])}")
+        print("p2rank")
+        for pocket in p2_residues.keys():
+            print(f"Size of {pocket}: {len(p2_residues[pocket])}")
 if __name__ == "__main__":
     accessions = list()
     parser = argparse.ArgumentParser()
