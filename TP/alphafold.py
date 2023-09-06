@@ -1,13 +1,26 @@
-import requests, sys, json, os, argparse, subprocess
-import tqdm, tarfile, shutil, glob, re, io
+import requests
+import sys
+import json
+import os
+import argparse
+import subprocess
+import tqdm
+import tarfile
+import shutil
+import glob
+import re
+import io
 import Bio.PDB as biopdb
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+
 class AlphaFolder:
     """Class to manipulate the Pockets of an alpha fold file from its PDB accession number
     """
+
     def __init__(self, accession, working_dir=os.getcwd(), p2rank_bin=None, fpocket_bin=None, max_cpu=1) -> None:
         if p2rank_bin is not None:
             self.P2RANK_BIN = p2rank_bin
@@ -120,15 +133,17 @@ class AlphaFolder:
         if remove_files:
             shutil.rmtree(self.result_dir)
 
-    def CompareResults(self, threshold = 0.2):
+    def CompareResults(self, threshold=0.7):
         fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
         p2rank_dir = os.path.join(self.result_dir, self.accession + '_p2rank')
-        p2rank_file = os.path.join(p2rank_dir, f"{self.accession}_AF.pdb_predictions.csv")
+        p2rank_file = os.path.join(
+            p2rank_dir, f"{self.accession}_AF.pdb_predictions.csv")
         pockets_folder = os.path.join(fpocket_dir, "pockets")
         # ---- fpocket ----
         #  files contain only the atoms contacted by alpha spheres in the given pocket.
         pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
         pockets_name_val = dict()
+        pockets_name_score = dict()
         for pocket in pockets:
             with open(pocket, 'r') as pocket_f:
                 data = pocket_f.read()
@@ -137,6 +152,9 @@ class AlphaFolder:
                     '\n'.join(values)), delim_whitespace=True, header=None)
                 pocket_name = os.path.basename(pocket).split('_')[0]
                 pockets_name_val[pocket_name] = set(df_p.iloc[:, 5])
+
+                score = re.findall("HEADER\s0.+", data)
+                pockets_name_score[pocket_name] = float(score[0].split(":")[1])
         pockets_name_val = dict(sorted(pockets_name_val.items()))
         for k in pockets_name_val.keys():
             pockets_name_val[k] = sorted(pockets_name_val[k])
@@ -144,7 +162,7 @@ class AlphaFolder:
         # ---- p2rank ----
         p2_df = pd.read_csv(p2rank_file,
                             sep='\s*,\s*',
-                            usecols=["name", "residue_ids"],
+                            usecols=["name", "residue_ids", "score"],
                             skipinitialspace=True, engine='python')
         p2_residues = dict()
         for j, p2row in p2_df.iterrows():
@@ -153,68 +171,65 @@ class AlphaFolder:
             p2_residues[p2row["name"]] = sorted(adjacent_residues)
 
 
-        '''
-        print("FPOCKET pockets:")
-        for k in pockets_name_val.keys():
-            print(f"-----------------{k}-----------------")
-            print(f"Residues: {pockets_name_val[k]}")
-        print("\nP2rank pockets:")
-        for k in p2_residues.keys():
-            print(f"-----------------{k}-----------------")
-            print(f"Residues: {p2_residues[k]}")
-        '''
-        mat = np.zeros((len(p2_residues), len(pockets_name_val)))
-
-        for i, k in enumerate(p2_residues.keys()):
-            for j,l in enumerate(pockets_name_val.keys()):
-                intersec = list(set(p2_residues[k]).intersection(set(pockets_name_val[l])))
-                mat[i][j] = len(intersec)/len(p2_residues[k])
-                if mat[i][j] >= threshold:
-                    print(f"{mat[i][j]*100}% of P2RANK's {k} found on FPOCKET's {l} pocket.")
-
-        ax = sns.heatmap(mat, linewidth=0.5)
-        ax.set_title("Percentage of P2RANK in FPOCKET pockets")
-        ax.set_xlabel("FPOCKET pockets")
-        plt.xticks(rotation=45)
-        ax.set_xticklabels(pockets_name_val.keys())
-        ax.set_ylabel("P2RANK pockets")
-        ax.set_yticklabels(p2_residues.keys())
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket.pdf"), dpi=300)
-
-        #-----------------------------------------------------
-        t = list(pockets_name_val.keys())
-        ticks = dict()
-        for j,l in enumerate(t):
-            for k in range(j+1, len(t)):
-                ticks[f"{j} + {k}"] = set(pockets_name_val[t[j]]).union(pockets_name_val[t[k]])
-        mat2 = np.zeros(((len(p2_residues), len(ticks.keys()))))
-        for i, k in enumerate(p2_residues.keys()):
-            for j,l in enumerate(ticks.keys()):
-                intersec = list(set(p2_residues[k]).intersection(set(ticks[l])))
-                mat2[i][j] = len(intersec)/len(p2_residues[k])
-                if mat2[i][j] >= threshold:
-                    print(f"{mat2[i][j]*100}% of P2RANK's {k} found on FPOCKET's {l} pocket union.")
-        print(mat2.shape)
-        print(ticks.keys())
-        plt.clf()
-        ax = sns.heatmap(mat2, linewidth=0.5)
-        ax.set_title("Percentage of P2RANK in FPOCKET pockets")
-        ax.set_xlabel("FPOCKET pockets")
-        ax.set_xticks(np.arange(0, len(ticks.keys())))
-        ax.set_xticklabels(ticks.keys())
-        plt.xticks(rotation=90)
-        ax.set_ylabel("P2RANK pockets")
-        ax.set_yticklabels(p2_residues.keys())
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.result_dir, "comparison_p2rank_fpocket_union.pdf"), dpi=300)
-        print("-----------------------------------------")
+        #---------------------------
+        print(f"Threshold: {threshold}")
         print("fpocket")
         for pocket in pockets_name_val.keys():
-            print(f"Size of {pocket}: {len(pockets_name_val[pocket])}")
+            print(f"Size of {pocket}: {len(pockets_name_val[pocket])} -> Score {pockets_name_score[pocket]}")
         print("p2rank")
         for pocket in p2_residues.keys():
-            print(f"Size of {pocket}: {len(p2_residues[pocket])}")
+            print(f"Size of {pocket}: {len(p2_residues[pocket])} -> Score: {p2_df.set_index('name').at[pocket, 'score']}")
+
+
+        #---------------------------
+        sorted_p2 = dict(sorted(p2_residues.items(),
+                         key=lambda x: len(x[1]), reverse=True))
+        selected = dict()
+        print("FPOCKET in P2")
+        for p2_pocket in sorted_p2.keys():
+            sorted_fp = list()
+            for x in pockets_name_val.keys():
+                inter = set(pockets_name_val[x]).intersection(
+                    set(sorted_p2[p2_pocket]))
+                sorted_fp.append((x, len(inter)))
+            sorted_fp = sorted(sorted_fp, key=lambda x: x[1], reverse=True)
+            for x in sorted_fp:
+                if (x[1]/len(pockets_name_val[x[0]])) >= threshold:
+                    if selected.get(p2_pocket) is None:
+                        selected[p2_pocket] = list()
+                        selected[p2_pocket].append(x[0])
+                    else:
+                        selected[p2_pocket].append(x[0])
+                    del pockets_name_val[x[0]]
+        print(selected)
+        # ----------------------------------------------------------
+        for s in selected.keys():
+            del p2_residues[s]
+
+        print("P2 in FPOCKET")
+        sorted_pockets = dict(
+            sorted(pockets_name_val.items(), key=lambda x: len(x[1]), reverse=True))
+        selected2 = dict()
+        for fp_pocket in sorted_pockets.keys():
+            sorted_p2 = list()
+            for x in p2_residues.keys():
+                inter = set(p2_residues[x]).intersection(
+                    set(sorted_pockets[fp_pocket]))
+                sorted_p2.append((x, len(inter)))
+            sorted_p2 = sorted(sorted_p2, key=lambda x: x[1], reverse=True)
+            for x in sorted_p2:
+                if (x[1]/len(p2_residues[x[0]])) >= threshold:
+                    if selected2.get(fp_pocket) is None:
+                        selected2[fp_pocket] = list()
+                        selected2[fp_pocket].append(x[0])
+                    else:
+                        selected2[fp_pocket].append(x[0])
+                    del p2_residues[x[0]]
+        print(selected2)
+        print(f"FPOCKET: {pockets_name_val}")
+        print(f"P2: {p2_residues}")
+
+
 if __name__ == "__main__":
     accessions = list()
     parser = argparse.ArgumentParser()
@@ -234,12 +249,12 @@ if __name__ == "__main__":
     working_dir = args.working_dir
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac, max_cpu=args.threads)
-        obj.GetUniprotFile()
+        # obj.GetUniprotFile()
         obj.GetAlphaFoldPrediction()
         obj.RunP2rankFromFile()
         obj.RunFpocketFromFile()
         obj.GetPlddtFromFile()
         obj.CompareResults()
-        
+
         if not args.no_compress:
             obj.CompressResults()
