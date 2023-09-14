@@ -13,8 +13,6 @@ import io
 import Bio.PDB as biopdb
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 class AlphaFolder:
@@ -46,6 +44,7 @@ class AlphaFolder:
             self.result_dir, f"{accession}_AF.pdb")
         self.af_plddt_filename = os.path.join(
             self.result_dir, f"{accession}_pldd.json")
+        
         sys.stderr.write(f"Uniprot protein accession number: {self.accession}\n" +
                          f"P2RANK binaries: {self.P2RANK_BIN}\n" +
                          f"FPOCKET binaries: {self.FPOCKET_BIN}\n" +
@@ -58,9 +57,14 @@ class AlphaFolder:
     def GetUniprotFile(self):
         """Get the text file containing the features of a protein from Uniprot. The file is stored at output/{accesion}
         """
-        if os.path.isfile(self.uniprot_text_filename):
+        try:
+            get_request = requests.get(self.uniprot_url)
+        except requests.exception.RequestException:
+            sys.stderr.write(f"Protein {self.accession} not found on Uniprot DB!\n")
             return None
-        get_request = requests.get(self.uniprot_url)
+        if "Error" in get_request.text:
+            sys.stderr.write(f"Protein {self.accession} not found on Uniprot DB!\n")
+            return None
         with open(self.uniprot_text_filename, "wb") as f:
             for chunk in get_request.iter_content(chunk_size=2**20):
                 f.write(chunk)
@@ -70,8 +74,12 @@ class AlphaFolder:
         """
         if os.path.isfile(self.af_pdb_filename):
             return None
-        metadata = json.loads(requests.get(self.af_url).text)
-        pdb_text = requests.get(metadata[0]["pdbUrl"]).text
+        try:
+            metadata = json.loads(requests.get(self.af_url).text)
+            pdb_text = requests.get(metadata[0]["pdbUrl"]).text
+        except (requests.exceptions.RequestException, KeyError):
+            sys.stderr.write(f"AlphaFold prediction for protein {self.accession} not found in DB!\n")
+            return None
         with open(self.af_pdb_filename, "w") as f:
             f.write(pdb_text)
 
@@ -81,8 +89,11 @@ class AlphaFolder:
         dir_ = os.path.join(self.result_dir, self.accession + '_p2rank')
         if os.path.isdir(dir_):
             return None
-        sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +
+        try:
+            sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +
                                f" -o {dir_} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
+        except subprocess.CalledProcessError:
+            sys.stderr.write(f"Failed to run P2RANK for the {self.accession} AlphaFold.\n")             
 
     def RunFpocketFromFile(self):
         """Run FPOCKET app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
@@ -91,8 +102,11 @@ class AlphaFolder:
         dir_ = os.path.join(self.result_dir, fpocket_out)
         if os.path.isdir(dir_):
             return None
-        sts = subprocess.run(
-            self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
+        try:
+            sts = subprocess.run(
+                self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
+        except subprocess.CalledProcessError:
+            sys.stderr.write(f"Failed to run Fpocket for the {self.accession} AlphaFold.\n")
         path_exists = os.path.exists(
             os.path.join(self.working_dir, fpocket_out))
         if path_exists:
@@ -249,7 +263,7 @@ if __name__ == "__main__":
     working_dir = args.working_dir
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac, max_cpu=args.threads)
-        # obj.GetUniprotFile()
+        obj.GetUniprotFile()
         obj.GetAlphaFoldPrediction()
         obj.RunP2rankFromFile()
         obj.RunFpocketFromFile()
