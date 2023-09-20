@@ -8,15 +8,15 @@ pip install pythoncyc
 import pythoncyc
 import pickle
 import networkx as nx
-import subprocess as sp
 from threading import Thread
 from TP import execute
 import gzip
-import glob
-import re
 import shutil
 from Bio import SeqIO
 from pathlib import Path
+import argparse
+import os
+from time import sleep
 
 class PathoLogic:
     DOCKERIMAGENAME = "ezequieljsosa/pw:24"
@@ -35,7 +35,7 @@ class PathoLogic:
         self.taxid = taxid
 
     def run_server(self):
-        """
+        """Run the Pathwaystools api on a docker image
         to exit server interactive ":exit"
         """
         execute(
@@ -45,16 +45,24 @@ class PathoLogic:
                     -no-cel-overview -no-web-cel-overview -python -api')
 
     def start(self):
+        """Start the docker container
+        """
         execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
 
     def stop(self):
+        """Stop the docker container, killing it
+        """
         execute(f'docker stop {PathoLogic.DOCKERCONTAIERNAME} -s SIGKILL')
 
     def run_pathologic(self):
+        """Run the pathlogic on a already started docker container
+        """
         execute(f'docker exec -w {self.input_data_dir} {PathoLogic.DOCKERCONTAIERNAME} /opt/pathway-tools/pathway-tools \
                      -no-patch-download -no-cel-overview -no-web-cel-overview -patho {self.input_data_dir}')
 
     def process_pgdb(self):
+        """Process a protein in the database and creates a dependency graph
+        """
         self.db = pythoncyc.select_organism(self.orgdbname)
         # pathwayts = {x.replace("|",""): self.db.get_frame_objects([x])[0] for x in self.db.all_pathways()}
         reactions = {x.replace("|", ""): self.db.get_frame_objects([x])[
@@ -113,6 +121,8 @@ class PathoLogic:
             pickle.dump(genes2, hg)
 
     def create_gendata(self):
+        """Create gendata used as input for Pathwaytools 
+        """
         
         gz_files = list(Path(os.path.join(self.input_data_dir)).glob("*.gz"))
         if len(gz_files) > 0:
@@ -151,12 +161,9 @@ class PathoLogic:
                     o.write(organism)
                     o.close()
             f.close()
-                #print(re.search("\d+", record.dbxrefs[0]).group(0))
                 
 if __name__ == "__main__":
-    import argparse
-    import os
-    from time import sleep
+
 
     parser = argparse.ArgumentParser(description='Pathologic')
     # orgdbname,pgdbs_data_dir,input_data_dir,output_data_dir,filter_count

@@ -17,6 +17,8 @@ class Roarier:
         self.roary_bin = f"docker run --user {os.getuid()}:{os.getgid()} --rm -it -v {self.out_dir}:/data sangerpathogens/roary roary"
 
     def run_prokka(self) -> None:
+        """Run Prokka from a docker container
+        """
         genomes = glob.glob(os.path.join(self.working_dir, "*.fna"))
         for g in genomes:
             locustag = Path(Path(g).stem).stem
@@ -34,6 +36,8 @@ class Roarier:
                 self.gffs_folder, 'PROKKA_' + locustag + '.gff'))
 
     def run_roary(self) -> None:
+        """Run Roary from a docker container
+        """
         gff_list = glob.glob(os.path.join(self.gffs_folder, "*.gff"))
         for i in range(0, len(gff_list)):
             gff_list[i] = os.path.basename(gff_list[i])
