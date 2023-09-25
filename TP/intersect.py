@@ -100,8 +100,9 @@ class Intersector:
                                   names=["family", "identifier", "range_inf", "range_sup"])
 
         # Read all the pdb files of each pocket
-        # fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
-        # pockets_folder = os.path.join(fpocket_dir, "pockets")
+        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_OUT")
+        pockets_folder = os.path.join(fpocket_dir, "pockets")
+        #  files contain only the atoms contacted by alpha spheres in the given pocket.
         pockets = glob.glob(os.path.join(pockets_folder, "*.pdb"))
         pockets_name_val = dict()
         for pocket in pockets:
