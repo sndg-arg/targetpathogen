@@ -256,6 +256,10 @@ if __name__ == "__main__":
                         type=str, required=False, default=os.getcwd())
     parser.add_argument('-nc', '--no_compress',
                         help="flag to not compress the results", action="store_true", default=False)
+    parser.add_argument('-nf', '--no_fpocket',
+                        help="flag to not run fpocket", action="store_true", default=False)
+    parser.add_argument('-np', '--no_p2rank',
+                        help="flag to not run p2rank", action="store_true", default=False)
     parser.add_argument('-pr', '--p2rank_bin', required=False,
                         help="p2rank binary path", default=None)
     parser.add_argument(
@@ -269,8 +273,10 @@ if __name__ == "__main__":
         obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, results_dir=args.results_dir, max_cpu=args.threads)
         obj.GetUniprotFile()
         obj.GetAlphaFoldPrediction()
-        obj.RunP2rankFromFile()
-        obj.RunFpocketFromFile()
+        if args.no_p2rank:
+            obj.RunP2rankFromFile()
+        if args.no_fpocket:
+            obj.RunFpocketFromFile()
         obj.GetPlddtFromFile()
         obj.CompareResults()
 
