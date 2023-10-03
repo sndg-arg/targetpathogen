@@ -28,7 +28,7 @@ class AlphaFolder:
         if fpocket_bin is not None:
             self.FPOCKET_BIN = fpocket_bin
         else:
-            self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm -it ezequieljsosa/fpocket fpocket"
+            self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
         self.working_dir = working_dir
         self.accession = accession
         self.uniprot_url = f'https://rest.uniprot.org/uniprotkb/{accession}.txt'
