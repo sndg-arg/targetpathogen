@@ -262,6 +262,8 @@ if __name__ == "__main__":
                         help="flag to not run p2rank", action="store_true", default=False)
     parser.add_argument('-pr', '--p2rank_bin', required=False,
                         help="p2rank binary path", default=None)
+    parser.add_argument('-c', '--compare', required=False,
+                        help="flag to compare results", action="store_true", default=None)
     parser.add_argument(
         '-T', '--threads', help="Number of threads to be used by the supported programs", type=int, default=1)
     args = parser.parse_args()
@@ -273,12 +275,13 @@ if __name__ == "__main__":
         obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, results_dir=args.results_dir, max_cpu=args.threads)
         obj.GetUniprotFile()
         obj.GetAlphaFoldPrediction()
-        if args.no_p2rank:
-            obj.RunP2rankFromFile()
-        if args.no_fpocket:
-            obj.RunFpocketFromFile()
         obj.GetPlddtFromFile()
-        obj.CompareResults()
+        if not args.no_p2rank:
+            obj.RunP2rankFromFile()
+        if not args.no_fpocket:
+            obj.RunFpocketFromFile()
+        if args.compare:
+            obj.CompareResults()
 
         if not args.no_compress:
             obj.CompressResults()
