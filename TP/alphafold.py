@@ -260,6 +260,9 @@ if __name__ == "__main__":
                         help="flag to not run fpocket", action="store_true", default=False)
     parser.add_argument('-np', '--no_p2rank',
                         help="flag to not run p2rank", action="store_true", default=False)
+    parser.add_argument('-na', '--no_alphafold',
+                        help="flag to not retrieve the alphafold, PLDDT and uniprot model.\
+                            Important: to run the other functions, an alphafold model needs to be in the working dir with the name ACESSION_AF.pdb", action="store_true", default=False)
     parser.add_argument('-pr', '--p2rank_bin', required=False,
                         help="p2rank binary path", default=None)
     parser.add_argument('-c', '--compare', required=False,
@@ -273,9 +276,19 @@ if __name__ == "__main__":
 
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, results_dir=args.results_dir, max_cpu=args.threads)
-        obj.GetUniprotFile()
-        obj.GetAlphaFoldPrediction()
-        obj.GetPlddtFromFile()
+        if not args.no_alphafold:
+            try:
+                obj.GetUniprotFile()
+            except:
+                sys.stderr.write(f"Error while trying to get the uniprot file for the protein {ac}")
+            try:
+                obj.GetAlphaFoldPrediction()
+            except:
+                sys.stderr.write(f"Error while trying to get the alphafold model file for the protein {ac}!\
+                                 Skipping execution!")
+                pass # the alphafold model is essential to the execution of the next steps
+
+            obj.GetPlddtFromFile()
         if not args.no_p2rank:
             obj.RunP2rankFromFile()
         if not args.no_fpocket:
