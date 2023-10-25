@@ -290,11 +290,26 @@ if __name__ == "__main__":
 
             obj.GetPlddtFromFile()
         if not args.no_p2rank:
-            obj.RunP2rankFromFile()
+            try:
+                obj.RunP2rankFromFile()
+            except:
+                sys.stderr.write(f"Error while trying to run P2RANK for protein {ac}!\n")
         if not args.no_fpocket:
-            obj.RunFpocketFromFile()
+            try:
+                obj.RunFpocketFromFile()
+            except:
+                sys.stderr.write(f"Error while trying to run FPOCKET for protein {ac}!\n")
         if args.compare:
-            obj.CompareResults()
+            try:
+                obj.CompareResults()
+            except:
+                sys.write.stderr(f"Error while trying to compare the results \
+                                 from P2RANK and FPOCKET for\
+                                 protein {ac}\n")
 
         if not args.no_compress:
-            obj.CompressResults()
+            try:
+                obj.CompressResults()
+            except:
+                sys.write.stderr(f"Error while trying to compress \
+                                 the results for protein {ac}\n")
