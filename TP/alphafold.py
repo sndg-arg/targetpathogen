@@ -28,7 +28,7 @@ class AlphaFolder:
         if fpocket_bin is not None:
             self.FPOCKET_BIN = fpocket_bin
         else:
-            self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm -it ezequieljsosa/fpocket fpocket"
+            self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
         self.working_dir = working_dir
         self.accession = accession
         self.uniprot_url = f'https://rest.uniprot.org/uniprotkb/{accession}.txt'
@@ -256,8 +256,17 @@ if __name__ == "__main__":
                         type=str, required=False, default=os.getcwd())
     parser.add_argument('-nc', '--no_compress',
                         help="flag to not compress the results", action="store_true", default=False)
+    parser.add_argument('-nf', '--no_fpocket',
+                        help="flag to not run fpocket", action="store_true", default=False)
+    parser.add_argument('-np', '--no_p2rank',
+                        help="flag to not run p2rank", action="store_true", default=False)
+    parser.add_argument('-na', '--no_alphafold',
+                        help="flag to not retrieve the alphafold, PLDDT and uniprot model.\
+                            Important: to run the other functions, an alphafold model needs to be in the working dir with the name ACESSION_AF.pdb", action="store_true", default=False)
     parser.add_argument('-pr', '--p2rank_bin', required=False,
                         help="p2rank binary path", default=None)
+    parser.add_argument('-c', '--compare', required=False,
+                        help="flag to compare results", action="store_true", default=None)
     parser.add_argument(
         '-T', '--threads', help="Number of threads to be used by the supported programs", type=int, default=1)
     args = parser.parse_args()
@@ -267,12 +276,40 @@ if __name__ == "__main__":
 
     for ac in tqdm.tqdm(accessions):
         obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, results_dir=args.results_dir, max_cpu=args.threads)
-        obj.GetUniprotFile()
-        obj.GetAlphaFoldPrediction()
-        obj.RunP2rankFromFile()
-        obj.RunFpocketFromFile()
-        obj.GetPlddtFromFile()
-        obj.CompareResults()
+        if not args.no_alphafold:
+            try:
+                obj.GetUniprotFile()
+            except:
+                sys.stderr.write(f"Error while trying to get the uniprot file for the protein {ac}")
+            try:
+                obj.GetAlphaFoldPrediction()
+            except:
+                sys.stderr.write(f"Error while trying to get the alphafold model file for the protein {ac}!\
+                                 Skipping execution!")
+                pass # the alphafold model is essential to the execution of the next steps
+
+            obj.GetPlddtFromFile()
+        if not args.no_p2rank:
+            try:
+                obj.RunP2rankFromFile()
+            except:
+                sys.stderr.write(f"Error while trying to run P2RANK for protein {ac}!\n")
+        if not args.no_fpocket:
+            try:
+                obj.RunFpocketFromFile()
+            except:
+                sys.stderr.write(f"Error while trying to run FPOCKET for protein {ac}!\n")
+        if args.compare:
+            try:
+                obj.CompareResults()
+            except:
+                sys.write.stderr(f"Error while trying to compare the results \
+                                 from P2RANK and FPOCKET for\
+                                 protein {ac}\n")
 
         if not args.no_compress:
-            obj.CompressResults()
+            try:
+                obj.CompressResults()
+            except:
+                sys.write.stderr(f"Error while trying to compress \
+                                 the results for protein {ac}\n")
