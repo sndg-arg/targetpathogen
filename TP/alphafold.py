@@ -287,8 +287,12 @@ if __name__ == "__main__":
                 sys.stderr.write(f"Error while trying to get the alphafold model file for the protein {ac}!\
                                  Skipping execution!")
                 pass # the alphafold model is essential to the execution of the next steps
-
-            obj.GetPlddtFromFile()
+            
+            try:
+                obj.GetPlddtFromFile()
+            except:
+                sys.stderr.write(f"Error while trying to get the PLDDT file for the protein {ac}!\
+                                 Skipping execution!")
         if not args.no_p2rank:
             try:
                 obj.RunP2rankFromFile()
