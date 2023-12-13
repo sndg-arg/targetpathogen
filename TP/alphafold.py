@@ -42,7 +42,7 @@ class AlphaFolder:
         self.uniprot_text_filename = os.path.join(
             self.result_dir, f"{accession}_uniprot.txt")
         self.af_pdb_filename = os.path.join(
-            self.result_dir, f"{accession}_AF.pdb")
+            self.result_dir, f"{accession}_af.pdb")
         self.af_plddt_filename = os.path.join(
             self.result_dir, f"{accession}_pldd.json")
         
@@ -99,7 +99,7 @@ class AlphaFolder:
     def RunFpocketFromFile(self):
         """Run FPOCKET app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        fpocket_out = f"{self.accession}_AF_out"
+        fpocket_out = f"{self.accession}_af_out"
         dir_ = os.path.join(self.result_dir, fpocket_out)
         if os.path.isdir(dir_):
             return None
@@ -149,10 +149,10 @@ class AlphaFolder:
             shutil.rmtree(self.result_dir)
 
     def CompareResults(self, threshold=0.7):
-        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_AF_out")
+        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_af_out")
         p2rank_dir = os.path.join(self.result_dir, self.accession + '_p2rank')
         p2rank_file = os.path.join(
-            p2rank_dir, f"{self.accession}_AF.pdb_predictions.csv")
+            p2rank_dir, f"{self.accession}_af.pdb_predictions.csv")
         pockets_folder = os.path.join(fpocket_dir, "pockets")
         # ---- fpocket ----
         #  files contain only the atoms contacted by alpha spheres in the given pocket.
@@ -254,6 +254,8 @@ if __name__ == "__main__":
                         default=sys.stdin)
     parser.add_argument('-o', '--results_dir', help="path of the results",
                         type=str, required=False, default=os.getcwd())
+    parser.add_argument('-w', '--working_dir', help="path of the working_dir",
+                        type=str, required=False, default=os.getcwd())
     parser.add_argument('-nc', '--no_compress',
                         help="flag to not compress the results", action="store_true", default=False)
     parser.add_argument('-nf', '--no_fpocket',
@@ -262,7 +264,7 @@ if __name__ == "__main__":
                         help="flag to not run p2rank", action="store_true", default=False)
     parser.add_argument('-na', '--no_alphafold',
                         help="flag to not retrieve the alphafold, PLDDT and uniprot model.\
-                            Important: to run the other functions, an alphafold model needs to be in the working dir with the name ACESSION_AF.pdb", action="store_true", default=False)
+                            Important: to run the other functions, an alphafold model needs to be in the working dir with the name ACESSION_af.pdb", action="store_true", default=False)
     parser.add_argument('-pr', '--p2rank_bin', required=False,
                         help="p2rank binary path", default=None)
     parser.add_argument('-c', '--compare', required=False,
@@ -275,7 +277,7 @@ if __name__ == "__main__":
         accessions.append(l.strip().upper())
 
     for ac in tqdm.tqdm(accessions):
-        obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, results_dir=args.results_dir, max_cpu=args.threads)
+        obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, working_dir=args.working_dir, results_dir=args.results_dir, max_cpu=args.threads)
         if not args.no_alphafold:
             try:
                 obj.GetUniprotFile()
