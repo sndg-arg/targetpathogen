@@ -19,7 +19,7 @@ class AlphaFolder:
     """Class to manipulate the Pockets of an alpha fold file from its PDB accession number
     """
 
-    def __init__(self, accession, working_dir=os.getcwd(), results_dir=os.getcwd() + "/output", p2rank_bin=None,
+    def __init__(self, accession, locus_tag , working_dir=os.getcwd(), results_dir=os.getcwd() + "/output", p2rank_bin=None,
                  fpocket_bin=None, max_cpu=1) -> None:
         if p2rank_bin is not None:
             self.P2RANK_BIN = p2rank_bin
@@ -31,20 +31,21 @@ class AlphaFolder:
             self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
         self.working_dir = working_dir
         self.accession = accession
+        self.locus_tag = locus_tag
         self.uniprot_url = f'https://rest.uniprot.org/uniprotkb/{accession}.txt'
         self.af_url = f"https://alphafold.ebi.ac.uk/api/prediction/{accession}?key=AIzaSyCeurAJz7ZGjPQUtEaerUkBZ3TaBkXrY94"
         self.result_dir = os.path.join(
-            results_dir, self.accession)
+            results_dir, self.locus_tag)
         if not os.path.exists(self.result_dir):
             os.makedirs(self.result_dir )
         self.out_dir = self.result_dir
         self.MAX_CPU = max_cpu
         self.uniprot_text_filename = os.path.join(
-            self.result_dir, f"{accession}_uniprot.txt")
+            self.result_dir, f"{locus_tag}_uniprot.txt")
         self.af_pdb_filename = os.path.join(
-            self.result_dir, f"{accession}_af.pdb")
+            self.result_dir, f"{locus_tag}_af.pdb")
         self.af_plddt_filename = os.path.join(
-            self.result_dir, f"{accession}_pldd.json")
+            self.result_dir, f"{locus_tag}_pldd.json")
         
         sys.stderr.write(f"Uniprot protein accession number: {self.accession}\n" +
                          f"P2RANK binaries: {self.P2RANK_BIN}\n" +
@@ -87,7 +88,7 @@ class AlphaFolder:
     def RunP2rankFromFile(self):
         """Run P2RANK app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
-        dir_ = os.path.join(self.result_dir, self.accession + '_p2rank')
+        dir_ = os.path.join(self.result_dir, self.locus_tag + '_p2rank')
         if os.path.isdir(dir_):
             return None
         try:
@@ -142,17 +143,17 @@ class AlphaFolder:
         Args:
             remove_files (bool, optional): Defaults to True.
         """
-        tar_filename = os.path.join(self.out_dir, f"{self.accession}.tar.gz")
+        tar_filename = os.path.join(self.out_dir, f"{self.locus_tag}.tar.gz")
         with tarfile.open(tar_filename, mode='w:gz') as archive:
-            archive.add(self.result_dir, self.accession, recursive=True)
+            archive.add(self.result_dir, self.locus_tag, recursive=True)
         if remove_files:
             shutil.rmtree(self.result_dir)
 
     def CompareResults(self, threshold=0.7):
-        fpocket_dir = os.path.join(self.result_dir, f"{self.accession}_af_out")
-        p2rank_dir = os.path.join(self.result_dir, self.accession + '_p2rank')
+        fpocket_dir = os.path.join(self.result_dir, f"{self.locus_tag}_af_out")
+        p2rank_dir = os.path.join(self.result_dir, self.locus_tag + '_p2rank')
         p2rank_file = os.path.join(
-            p2rank_dir, f"{self.accession}_af.pdb_predictions.csv")
+            p2rank_dir, f"{self.locus_tag}_af.pdb_predictions.csv")
         pockets_folder = os.path.join(fpocket_dir, "pockets")
         # ---- fpocket ----
         #  files contain only the atoms contacted by alpha spheres in the given pocket.
@@ -269,6 +270,8 @@ if __name__ == "__main__":
                         help="p2rank binary path", default=None)
     parser.add_argument('-c', '--compare', required=False,
                         help="flag to compare results", action="store_true", default=None)
+    parser.add_argument('-ltag', '--locus_tag', required=False,
+                        help="Locus tag to be used in the dic structure",type=str, default=None)
     parser.add_argument(
         '-T', '--threads', help="Number of threads to be used by the supported programs", type=int, default=1)
     args = parser.parse_args()
@@ -277,7 +280,7 @@ if __name__ == "__main__":
         accessions.append(l.strip().upper())
 
     for ac in tqdm.tqdm(accessions):
-        obj = AlphaFolder(ac, p2rank_bin=args.p2rank_bin, working_dir=args.working_dir, results_dir=args.results_dir, max_cpu=args.threads)
+        obj = AlphaFolder(ac, locus_tag= args.locus_tag, p2rank_bin=args.p2rank_bin, working_dir=args.working_dir, results_dir=args.results_dir, max_cpu=args.threads)
         if not args.no_alphafold:
             try:
                 obj.GetUniprotFile()
