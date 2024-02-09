@@ -5,11 +5,9 @@ import os
 def main(csv_file):
     # Read the CSV file using pandas
     data = pd.read_csv(csv_file)
-    data["locus_tag"] = [str(x).split(" ")[-1] for x in data["Gene Names"]]
-    data = data[["Entry", "locus_tag"]]
+    data = data[["Entry", "LocusTag"]]
     data = data.dropna(subset=["Entry"])
-    data = data.dropna(subset=["locus_tag"]) 
-    # Do further processing or analysis with the data
+    data = data.dropna(subset=["LocusTag"]) 
     print("Data loaded successfully:\n", data)
     # Save the data as csv
     directory, filename = os.path.split(csv_file)
