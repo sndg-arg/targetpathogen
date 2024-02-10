@@ -1,12 +1,16 @@
 import argparse
 import csv
 import subprocess
+import os
 
-def run_alphafold(uniprot_entry, locus_tag):
+def run_alphafold(uniprot_entry, locus_tag, csv_file):
+    directory, filename = os.path.split(csv_file)
+    directory = os.path.join(directory, "alphafold")
+    print(directory)
     command = [
         "python", "-m", "TP.alphafold",
         "-pr", "opt/p2rank/distro/prank",
-        "-o", "data/025/NC_002516.2/NC_002516.2/alphafold",
+        "-o", directory,
         "-T", "10",
         "-ltag", locus_tag,
         "-nc",
@@ -20,7 +24,7 @@ def main(csv_file):
         next(reader)  # Skip header
         for row in reader:
             uniprot_entry, locus_tag = row
-            run_alphafold(uniprot_entry, locus_tag)
+            run_alphafold(uniprot_entry, locus_tag, csv_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run AlphaFold with UniProt entry codes and locus tags from a CSV file")
