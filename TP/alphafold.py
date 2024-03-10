@@ -20,7 +20,7 @@ class AlphaFolder:
     """
 
     def __init__(self, accession, locus_tag , working_dir=os.getcwd(), results_dir=os.getcwd() + "/output", p2rank_bin=None,
-                 fpocket_bin=None, max_cpu=1) -> None:
+                 fpocket_bin=None,in_parsl=None, max_cpu=1) -> None:
         if p2rank_bin is not None:
             self.P2RANK_BIN = p2rank_bin
         else:
@@ -28,7 +28,11 @@ class AlphaFolder:
         if fpocket_bin is not None:
             self.FPOCKET_BIN = fpocket_bin
         else:
-            self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
+            if in_parsl is None:
+                self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
+            else:
+                parent_dir = os.path.dirname(working_dir)
+                self.FPOCKET_BIN = f"docker run -v {parent_dir}:{parent_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
         self.working_dir = working_dir
         self.accession = accession
         self.locus_tag = locus_tag
@@ -104,9 +108,14 @@ class AlphaFolder:
         dir_ = os.path.join(self.result_dir, fpocket_out)
         if os.path.isdir(dir_):
             return None
+        sts_arg = self.FPOCKET_BIN + f" -f {self.af_pdb_filename}"
+        
         try:
+
             sts = subprocess.run(
                 self.FPOCKET_BIN + f" -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr)
+            
+        
         except subprocess.CalledProcessError:
             sys.stderr.write(f"Failed to run Fpocket for the {self.accession} AlphaFold.\n")
         path_exists = os.path.exists(
@@ -272,15 +281,16 @@ if __name__ == "__main__":
                         help="flag to compare results", action="store_true", default=None)
     parser.add_argument('-ltag', '--locus_tag', required=False,
                         help="Locus tag to be used in the dic structure",type=str, default=None)
-    parser.add_argument(
-        '-T', '--threads', help="Number of threads to be used by the supported programs", type=int, default=1)
+    parser.add_argument('-T', '--threads', help="Number of threads to be used by the supported programs", type=int, default=1)
+    parser.add_argument('-parsl', '--in_parsl', required=False,
+                        help="Flag to indicate that this script is being runned within a parsl pipeline 'usually in the bottom /parsl folder'",  action="store_true", default=None)
     args = parser.parse_args()
 
     for l in args.accessions:
         accessions.append(l.strip().upper())
 
     for ac in tqdm.tqdm(accessions):
-        obj = AlphaFolder(ac, locus_tag= args.locus_tag, p2rank_bin=args.p2rank_bin, working_dir=args.working_dir, results_dir=args.results_dir, max_cpu=args.threads)
+        obj = AlphaFolder(ac, locus_tag= args.locus_tag,in_parsl=args.in_parsl, p2rank_bin=args.p2rank_bin, working_dir=args.working_dir, results_dir=args.results_dir, max_cpu=args.threads)
         if not args.no_alphafold:
             try:
                 obj.GetUniprotFile()
