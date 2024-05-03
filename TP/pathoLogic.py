@@ -54,6 +54,11 @@ class PathoLogic:
         """
         execute(f'docker stop {PathoLogic.DOCKERCONTAIERNAME} -s SIGKILL')
 
+    def ps(self):
+        """Check existing containers
+        """
+        execute(f'docker ps')
+
     def run_pathologic(self):
         """Run the pathlogic on a already started docker container
         """
@@ -124,7 +129,7 @@ class PathoLogic:
         """Create gendata used as input for Pathwaytools 
         """
         
-        gz_files = list(Path(os.path.join(self.input_data_dir)).glob("*.gz"))
+        gz_files = list(Path(os.path.join(self.input_data_dir)).glob("*gbk.gz"))
         if len(gz_files) > 0:
             gz_file = gz_files[0]
             filename = Path(gz_file).stem
@@ -154,13 +159,10 @@ class PathoLogic:
                 genetic_elements += f"TYPE\t:CHRSM\n" # n temos?
                 genetic_elements += f"CIRCULAR?\t{circular}\n"
                 genetic_elements += f"ANNOT-FILE\t{filename}"
-                with open(os.path.join(self.input_data_dir, "genetic-elements.dat"), 'w') as g:
-                    g.write(genetic_elements)
-                    g.close()
-                with open(os.path.join(self.input_data_dir, "organism-params.dat"), 'w') as o:
-                    o.write(organism)
-                    o.close()
-            f.close()
+        with open(os.path.join(self.input_data_dir, "genetic-elements.dat"), 'w') as g:
+            g.write(genetic_elements)
+        with open(os.path.join(self.input_data_dir, "organism-params.dat"), 'w') as o:
+            o.write(organism)
                 
 if __name__ == "__main__":
 
@@ -178,19 +180,20 @@ if __name__ == "__main__":
                         help="directory where results are stores")
     parser.add_argument('--filter_count', type=int, default=20,
                         help="max occurrences for compounds")
-    parser.add_argument('--wait_server_up', type=int, default=10,
+    parser.add_argument('--wait_server_up', type=int, default=30,
                         help="time to wait before using pathwaytools server")
 
     args = parser.parse_args()
 
-    assert os.path.exists(
-        args.pgdbs_data_dir), f'{args.pgdbs_data_dir} does no exist'
-    assert os.path.exists(
-        args.input_data_dir), f'{args.input_data_dir} does no exist'
+
     if not os.path.exists(args.output_data_dir):
         os.makedirs(args.output_data_dir)
-    assert os.path.exists(
-        args.output_data_dir), f'{args.output_data_dir} cant be created'
+    if not os.path.exists(args.input_data_dir):
+        os.makedirs(args.input_data_dir)
+    if not os.path.exists(args.pgdbs_data_dir):
+        os.makedirs(args.pgdbs_data_dir)
+    
+
 
     pl = PathoLogic(args.orgdbname, args.domain, args.taxid, args.pgdbs_data_dir,
                     args.input_data_dir, args.output_data_dir, args.filter_count)
