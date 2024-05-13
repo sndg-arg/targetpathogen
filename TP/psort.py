@@ -14,6 +14,7 @@ import argparse
 import os
 from time import sleep
 import subprocess
+import glob
 
 class Psort:
     DOCKERIMAGENAME = "brinkmanlab"
@@ -31,6 +32,7 @@ class Psort:
                 f'wget -O psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
                 f'chmod +x psort/psortb'
             )
+        
 
 if __name__ == "__main__":
 
@@ -52,9 +54,9 @@ if __name__ == "__main__":
     subprocess.run(unzip_command, shell=True)
     faa_file = seqstore.faa_decompress(args.accession)
 
-    if not os.path.exists('./tmp'):
-        os.makedirs('tmp')
-
+    if os.path.exists('./tmp'):
+        shutil.rmtree('tmp')
+    os.makedirs('tmp')
 
     if args.negative:
         command = f'psort/psortb -n -o terse --seq {faa_file} --outdir tmp'
@@ -63,8 +65,20 @@ if __name__ == "__main__":
     print("Starting command execution...")
     process = subprocess.Popen(command, shell=True, text=True)
     print("Command execution completed.")
+    
     try:
-        output, errors = process.communicate(timeout=600)  # Adjust the timeout as needed
+        output, errors = process.communicate(timeout=1200)  # Adjust the timeout as needed
         print(output)
     except subprocess.TimeoutExpired:
         print("The command timed out.")
+        
+    # Use glob to find all.txt files in the directory
+    psort_list = glob.glob(f'./tmp/*.txt')
+    psort_out = psort_list[0]
+    destination_file_path = os.path.join(genome_dir, 'psort_res')
+    print(psort_out)
+    print(destination_file_path)
+
+    shutil.move(psort_out, destination_file_path)               
+
+
