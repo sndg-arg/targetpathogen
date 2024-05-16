@@ -1,6 +1,13 @@
 from collections import defaultdict
-
+import os
 from bioseq.io.SeqStore import SeqStore
+import django
+# Assuming your settings module is named 'settings' and located in the same directory as your script
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tpwebconfig/settings')
+
+django.setup()
+
+from tpweb.models.ScoreParam import ScoreParam
 import pythoncyc
 import pickle
 import networkx as nx
@@ -20,7 +27,7 @@ class Psort:
     DOCKERIMAGENAME = "brinkmanlab"
     DOCKERCONTAIERNAME = "psortb_commandline:1.0.2"
 
-    #
+    # If Psort does not exists get the docker image and the psortb wrapper
     def __init__(self, accession):
 
         self.accession = accession
@@ -32,6 +39,7 @@ class Psort:
                 f'wget -O psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
                 f'chmod +x psort/psortb'
             )
+            ScoreParam.Initialize_celular_localization()
         
 
 if __name__ == "__main__":
@@ -45,40 +53,38 @@ if __name__ == "__main__":
                         help="Indicates that the bacteria is a Gram negative", default=False)
     args = parser.parse_args()
 
+    # Path handling
     ps = Psort(args.accession)
     seqstore = SeqStore("./data")
     genome_dir = seqstore.db_dir(args.accession)
     faa_gz_file = seqstore.faa(args.accession)
-
     unzip_command = f'gzip -dk {faa_gz_file}' 
     subprocess.run(unzip_command, shell=True)
     faa_file = seqstore.faa_decompress(args.accession)
 
+    # Tmp folder is needed to catch the output file
     if os.path.exists('./tmp'):
         shutil.rmtree('tmp')
     os.makedirs('tmp')
 
+    # Based on the argument recived choose a command.
     if args.negative:
         command = f'psort/psortb -n -o terse --seq {faa_file} --outdir tmp'
     if args.positive:
         command = f'psort/psortb -p -o terse --seq {faa_file} --outdir tmp'
-    print("Starting command execution...")
+
+
+    # Run the process and timeout at 20' to avoid endless execution.
     process = subprocess.Popen(command, shell=True, text=True)
-    print("Command execution completed.")
-    
     try:
-        output, errors = process.communicate(timeout=1200)  # Adjust the timeout as needed
-        print(output)
+        output, errors = process.communicate(timeout=1200)
     except subprocess.TimeoutExpired:
         print("The command timed out.")
         
-    # Use glob to find all.txt files in the directory
+    # Use glob to find all.txt files in the directory and move the results to its corresponding directory.
     psort_list = glob.glob(f'./tmp/*.txt')
     psort_out = psort_list[0]
     destination_file_path = os.path.join(genome_dir, 'psort_res')
-    print(psort_out)
-    print(destination_file_path)
-
     shutil.move(psort_out, destination_file_path)               
 
 
