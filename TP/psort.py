@@ -39,7 +39,7 @@ class Psort:
                 f'wget -O psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
                 f'chmod +x psort/psortb'
             )
-            ScoreParam.Initialize_celular_localization()
+
         
 
 if __name__ == "__main__":
