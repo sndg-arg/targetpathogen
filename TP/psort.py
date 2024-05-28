@@ -16,6 +16,7 @@ import os
 from time import sleep
 import subprocess
 import glob
+import pandas as pd
 
 class Psort:
     DOCKERIMAGENAME = "brinkmanlab"
@@ -57,14 +58,14 @@ if __name__ == "__main__":
     genome_dir = seqstore.db_dir(args.accession)
 
     faa_decomp = seqstore.faa_decompress(args.accession)
-    print(faa_decomp)
+
     if not os.path.exists(faa_decomp):
         faa_gz_file = seqstore.faa(args.accession)
         unzip_command = f'gzip -dk {faa_gz_file}' 
         subprocess.run(unzip_command, shell=True)
 
     faa_file = seqstore.faa_decompress(args.accession)
-    print(faa_file)
+
     tmp = f'{tpwebdir}/tmp'
 
     # Tmp folder is needed to catch the output file
@@ -74,10 +75,10 @@ if __name__ == "__main__":
 
     # Based on the argument recived choose a command.
     if args.negative:
-        print('Negative branch')
+
         command = f'{tpwebdir}/psort/psortb -n -o terse --seq {faa_file} --outdir {tmp}'
     if args.positive:
-        print('Positive branch')
+
         command = f'{tpwebdir}/psort/psortb -p -o terse --seq {faa_file} --outdir {tmp}'
 
 
@@ -91,10 +92,26 @@ if __name__ == "__main__":
         
     # Use glob to find all.txt files in the directory and move the results to its corresponding directory.
     
-    print('Glob')
+
     psort_list = glob.glob(f"{tpwebdir}/tmp/*.txt")
     psort_out = psort_list[0]
     destination_file_path = os.path.join(genome_dir, 'psort_res')
-    shutil.move(psort_out, destination_file_path)               
+    shutil.move(psort_out, destination_file_path)
+
+    psort_res = seqstore.psort(args.accession)
+    print(psort_res)
+    df = pd.read_csv(psort_res, sep='\t')
+    # Modify the SeqID column to only store the first word
+    df['SeqID'] = df['SeqID'].apply(lambda x: x.split()[0])
+    # Drop the Score column
+    df.drop('Score', axis=1, inplace=True)
+    # Rename columns
+    df.rename(columns={'SeqID': 'gene', 'Localization': 'Celular_localization'}, inplace=True)
+    db_dir = seqstore.db_dir(args.accession)
+    csv_filename = 'psort.tsv' 
+    csv_path = os.path.join(db_dir,csv_filename)
+    df.to_csv(csv_path, sep='\t', index=False)
+    print(df)
+
 
 
