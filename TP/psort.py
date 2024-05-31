@@ -23,15 +23,15 @@ class Psort:
     DOCKERCONTAIERNAME = "psortb_commandline:1.0.2"
 
     # If Psort does not exists get the docker image and the psortb wrapper
-    def __init__(self, accession):
-        self.accession = accession
-        if not os.path.exists('psort'):
+    def __init__(self, tpwebdir):
+        #self.accession = accession
+        if not os.path.exists(f'{tpwebdir}/psort'):
             print('Psort folder does not exist, creating one...')
-            os.makedirs('psort')
+            os.makedirs(f'{tpwebdir}/psort')
             execute(
                 f'docker pull {Psort.DOCKERIMAGENAME}/{Psort.DOCKERCONTAIERNAME} && '
-                f'wget -O psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
-                f'chmod +x psort/psortb'
+                f'wget -O {tpwebdir}/psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
+                f'chmod +x {tpwebdir}/psort/psortb'
             )
 
         
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Path handling
-    #ps = Psort(args.accession)
+    ps = Psort(args.tpwebdir)
 
     tpwebdir = args.tpwebdir
     seqstore = SeqStore(f"{tpwebdir}/data")
