@@ -30,7 +30,7 @@ class Psort:
             os.makedirs(f'{tpwebdir}/psort')
             execute(
                 f'docker pull {Psort.DOCKERIMAGENAME}/{Psort.DOCKERCONTAIERNAME} && '
-                f'wget -O {tpwebdir}/psort/psortb https://raw.githubusercontent.com/brinkmanlab/psortb_commandline_docker/master/psortb && '
+                f'wget -O {tpwebdir}/psort/psortb https://raw.githubusercontent.com/L-G-g/psortb_commandline_docker/master/psortb && '
                 f'chmod +x {tpwebdir}/psort/psortb'
             )
 
