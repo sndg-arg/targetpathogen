@@ -92,6 +92,20 @@ class AlphaFolder:
     def RunP2rankFromFile(self):
         """Run P2RANK app from the PDB file obtained from AlphaFold DB and saves the results on output/{accesion} folder
         """
+        if not os.path.exists(self.P2RANK_BIN):
+            print('entro')
+            # Clone P2RANK repository if it doesn't exist
+            clone_path = os.path.join('../opt', 'p2rank')
+            os.makedirs(clone_path, exist_ok=True)
+            subprocess.run(['git', 'clone', 'https://github.com/rdk/p2rank.git', clone_path], check=True)
+            # Change directory to the cloned repository
+            os.chdir(clone_path)
+            # Make the script executable
+            subprocess.run(['chmod', '+x', 'make.sh'], check=True)
+            # Run the make.sh script
+            subprocess.run(['./make.sh'], check=True)
+            # Update self.P2RANK_BIN to point to the cloned binary
+            self.P2RANK_BIN = os.path.join(clone_path, 'distro/prank')  # Assuming the binary is located here
         dir_ = os.path.join(self.result_dir, self.locus_tag + '_p2rank')
         if os.path.isdir(dir_):
             return None
