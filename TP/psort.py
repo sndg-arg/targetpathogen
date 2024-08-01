@@ -83,7 +83,7 @@ if __name__ == "__main__":
         command = f'{tpwebdir}/psort/psortb -p -o terse --seq {faa_file} --outdir {tmp}'
 
     # Run the process and timeout at 20' to avoid endless execution.
-    process = subprocess.run(command, shell=True, timeout=1200)
+    process = subprocess.run(command, shell=True, timeout=12000)
     # try:
     #     timeout = args.timeout
     #     output, errors = process.communicate(timeout=timeout)
