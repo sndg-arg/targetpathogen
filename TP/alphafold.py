@@ -28,11 +28,12 @@ class AlphaFolder:
         if fpocket_bin is not None:
             self.FPOCKET_BIN = fpocket_bin
         else:
+            CWD = os.environ.get('CWD', '/')
             if in_parsl is None:
-                self.FPOCKET_BIN = f"docker run -v {working_dir}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
+                self.FPOCKET_BIN = f"docker run -v {CWD}:{working_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
             else:
                 parent_dir = os.path.dirname(working_dir)
-                self.FPOCKET_BIN = f"docker run -v {parent_dir}:{parent_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
+                self.FPOCKET_BIN = f"docker run -v {CWD}:{parent_dir} -w {working_dir} --user {os.getuid()}:{os.getgid()} --rm ezequieljsosa/fpocket fpocket"
         self.working_dir = working_dir
         self.accession = accession
         self.locus_tag = locus_tag
