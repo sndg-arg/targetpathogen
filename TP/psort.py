@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     # Use glob to find all.txt files in the directory and move the results to its corresponding directory.
 
-    psort_list = glob.glob("/tmp/results")
+    psort_list = glob.glob("/tmp/results/*.txt")
     psort_out = psort_list[0]
     destination_file_path = os.path.join(genome_dir, 'psort_res')
     shutil.move(psort_out, destination_file_path)
