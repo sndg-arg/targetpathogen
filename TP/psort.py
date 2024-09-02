@@ -72,14 +72,13 @@ if __name__ == "__main__":
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
     os.makedirs(tmp)
-
+    CWD = os.environ.get('CWD', '/')
     # Based on the argument recived choose a command.
     if args.negative:
+        command = f'docker run --rm -v {CWD}:/app/targetpathogenweb -v /tmp:/tmp -e MOUNT={CWD} brinkmanlab/psortb_commandline:1.0.2  /usr/local/psortb/bin/psort -n -i {faa_file}'
 
-        command = f'{tpwebdir}/psort/psortb -n -o terse --seq {faa_file} --outdir {tmp}'
     if args.positive:
-
-        command = f'{tpwebdir}/psort/psortb -p -o terse --seq {faa_file} --outdir {tmp}'
+        command = f'docker run --rm -v {CWD}:/app/targetpathogenweb -v /tmp:/tmp -e MOUNT={CWD} brinkmanlab/psortb_commandline:1.0.2  /usr/local/psortb/bin/psort -p -i {faa_file}'
 
     # Run the process and timeout at 20' to avoid endless execution.
     process = subprocess.run(command, shell=True, timeout=12000)
@@ -91,7 +90,7 @@ if __name__ == "__main__":
 
     # Use glob to find all.txt files in the directory and move the results to its corresponding directory.
 
-    psort_list = glob.glob(f"{tpwebdir}/tmp/*.txt")
+    psort_list = glob.glob(f"/tmp/results/*.txt")
     psort_out = psort_list[0]
     destination_file_path = os.path.join(genome_dir, 'psort_res')
     shutil.move(psort_out, destination_file_path)
