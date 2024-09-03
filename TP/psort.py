@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     faa_file = seqstore.faa_decompress(args.accession)
 
-    tmp = f'{tpwebdir}/tmp'
+    tmp = f'/tmp/results'
 
     # Tmp folder is needed to catch the output file
     if os.path.exists(tmp):
