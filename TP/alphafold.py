@@ -112,7 +112,7 @@ class AlphaFolder:
             return None
         try:
             sts = subprocess.Popen(f"{self.P2RANK_BIN} predict" +
-                               f" -o {dir_} -visualizations 0 -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
+                               f" -o {dir_} -threads {self.MAX_CPU} -c alphafold -f {self.af_pdb_filename}", shell=True, stdout=sys.stderr).wait()
         except subprocess.CalledProcessError:
             sys.stderr.write(f"Failed to run P2RANK for the {self.accession} AlphaFold.\n")             
 
